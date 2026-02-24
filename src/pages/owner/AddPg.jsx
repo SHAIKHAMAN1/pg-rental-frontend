@@ -3,7 +3,6 @@ import Title from "../../components/Title";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 
-
 const sharingMap = { single: 1, double: 2, triple: 3 };
 const roomTypes = ["single", "double", "triple"];
 
@@ -17,6 +16,8 @@ const AddPg = () => {
     amenities: [],
     images: [],
     isAvailable: true,
+    phone: "",
+    isGirlsPg: false,
     roomConfig: {
       single: { rooms: 0, price: 0 },
       double: { rooms: 0, price: 0 },
@@ -75,22 +76,6 @@ const AddPg = () => {
     }));
   };
 
-  /* Drag & Drop */
-  const handleDrop = (e) => {
-    e.preventDefault();
-    setDragActive(false);
-    handleFiles(e.dataTransfer.files);
-  };
-
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    setDragActive(true);
-  };
-
-  const handleDragLeave = () => {
-    setDragActive(false);
-  };
-
   const removeImage = (index) => {
     setFormData((prev) => ({
       ...prev,
@@ -98,45 +83,67 @@ const AddPg = () => {
     }));
   };
 
-  /* Calculate Beds */
   const calculateBeds = (type) =>
     formData.roomConfig[type].rooms * sharingMap[type];
 
   /* Submit */
-const handleSubmit = async (e) => {
-  e.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  try {
-    const form = new FormData();
-
-    const pgData = {
-      name: formData.name,
-      location: formData.location,
-      description: formData.description,
-      amenities: formData.amenities,
-      roomConfig: formData.roomConfig,
-      isAvailable: formData.isAvailable
-    };
-
-    form.append("pgData", JSON.stringify(pgData));
-
-    formData.images.forEach((image) => {
-      form.append("images", image);
-    });
-
-    const { data } = await axios.post("/api/owner/add-pg", form);
-
-    if (data.success) {
-      toast.success("PG Added Successfully");
-    } else {
-      toast.error(data.message);
+    if (!formData.phone) {
+      return toast.error("Phone number is required");
     }
 
-  } catch (error) {
-    toast.error(error.response?.data?.message || error.message);
-  }
-};
+    try {
+      const form = new FormData();
 
+      const pgData = {
+        name: formData.name,
+        location: formData.location,
+        description: formData.description,
+        amenities: formData.amenities,
+        roomConfig: formData.roomConfig,
+        isAvailable: formData.isAvailable,
+        phone: formData.phone,
+        isGirlsPg: formData.isGirlsPg
+      };
+
+      form.append("pgData", JSON.stringify(pgData));
+
+      formData.images.forEach((image) => {
+        form.append("images", image);
+      });
+
+      const { data } = await axios.post("/api/owner/add-pg", form);
+
+      if (data.success) {
+        toast.success("PG Added Successfully");
+
+        // Reset form
+        setFormData({
+          name: "",
+          location: "",
+          description: "",
+          amenities: [],
+          images: [],
+          isAvailable: true,
+          phone: "",
+          isGirlsPg: false,
+          roomConfig: {
+            single: { rooms: 0, price: 0 },
+            double: { rooms: 0, price: 0 },
+            triple: { rooms: 0, price: 0 }
+          }
+        });
+
+      } else {
+        toast.error(data.message);
+      }
+
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.message);
+    }
+  };
 
   return (
     <div className="p-10 w-full bg-gray-50 min-h-screen">
@@ -156,6 +163,30 @@ const handleSubmit = async (e) => {
         <div className="grid md:grid-cols-2 gap-6">
           <Input label="PG Name" name="name" value={formData.name} onChange={handleChange} />
           <Input label="Location" name="location" value={formData.location} onChange={handleChange} />
+        </div>
+
+        {/* Phone */}
+        <div className="mt-6">
+          <Input
+            label="Contact Phone Number"
+            name="phone"
+            value={formData.phone}
+            onChange={handleChange}
+            placeholder="Enter 10 digit mobile number"
+          />
+        </div>
+
+        {/* Girls PG Checkbox */}
+        <div className="mt-4">
+          <label className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              name="isGirlsPg"
+              checked={formData.isGirlsPg}
+              onChange={handleChange}
+            />
+            This is a Girls PG
+          </label>
         </div>
 
         {/* Room Config */}
@@ -215,54 +246,12 @@ const handleSubmit = async (e) => {
         {/* Image Upload */}
         <SectionTitle title="Upload Images" />
 
-        <div
-          onDrop={handleDrop}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          className={`border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition ${
-            dragActive
-              ? "border-primary bg-primary/5"
-              : "border-gray-300"
-          }`}
-        >
-          <input
-            type="file"
-            multiple
-            accept="image/*"
-            onChange={(e) => handleFiles(e.target.files)}
-            className="hidden"
-            id="imageUpload"
-          />
-
-          <label htmlFor="imageUpload" className="cursor-pointer">
-            <p className="text-gray-600">
-              Drag & Drop images here or
-              <span className="text-primary font-medium"> browse</span>
-            </p>
-          </label>
-        </div>
-
-        {/* Preview */}
-        {formData.images.length > 0 && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-            {formData.images.map((file, index) => (
-              <div key={index} className="relative">
-                <img
-                  src={URL.createObjectURL(file)}
-                  alt="preview"
-                  className="w-full h-32 object-cover rounded-lg"
-                />
-                <button
-                  type="button"
-                  onClick={() => removeImage(index)}
-                  className="absolute top-2 right-2 bg-black text-white text-xs px-2 py-1 rounded"
-                >
-                  ✕
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
+        <input
+          type="file"
+          multiple
+          accept="image/*"
+          onChange={(e) => handleFiles(e.target.files)}
+        />
 
         {/* Description */}
         <SectionTitle title="Description" />

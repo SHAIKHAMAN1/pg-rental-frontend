@@ -13,13 +13,14 @@ const Sidebar = () => {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const { data } = await axios.get("/api/user/me");
+        // ✅ Correct endpoint
+        const { data } = await axios.get("/api/user/data");
 
         if (data.success) {
           setUser(data.user);
         }
       } catch (error) {
-        console.log(error);
+        console.log("Fetch user error:", error);
       }
     };
 
@@ -42,14 +43,15 @@ const Sidebar = () => {
       );
 
       if (data.success) {
+        // ✅ Keep same object structure
         setUser((prev) => ({
           ...prev,
-          image: data.image.url
+          image: data.image
         }));
         setImage(null);
       }
     } catch (error) {
-      console.log(error);
+      console.log("Image update error:", error);
     }
   };
 
@@ -97,7 +99,7 @@ const Sidebar = () => {
 
       {/* Username */}
       <p className="mt-4 text-lg font-semibold">
-        {user?.name}
+        {user?.name || "User"}
       </p>
 
       {/* Navigation Links */}

@@ -8,23 +8,23 @@ const ManageBookings = () => {
   const [loading, setLoading] = useState(true);
 
   /* Fetch Owner Bookings */
-  useEffect(() => {
-    const fetchBookings = async () => {
-      try {
-        const { data } = await axios.get("/api/booking/owner");
+useEffect(() => {
+  const fetchBookings = async () => {
+    try {
+      const { data } = await axios.get("/api/booking/owner");
 
-        if (data.success) {
-          setBookings(data.bookings || []);
-        }
-      } catch (error) {
-        toast.error("Failed to fetch bookings");
-      } finally {
-        setLoading(false);
+      if (data.success) {
+        setBookings(data.data || []);
       }
-    };
+    } catch (error) {
+      toast.error("Failed to fetch bookings");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchBookings();
-  }, []);
+  fetchBookings();
+}, []);
 
   /* Delete Booking */
   const handleDelete = async (id) => {
@@ -195,3 +195,6 @@ const ManageBookings = () => {
 };
 
 export default ManageBookings;
+
+
+

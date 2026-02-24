@@ -117,7 +117,7 @@ const MyBookings = () => {
                 </div>
               </div>
 
-              {/* 🔥 OWNER CONTACT SECTION */}
+              {/* OWNER CONTACT SECTION */}
               {booking.status === "confirmed" && (
                 <div className="mt-4 p-5 bg-green-50 rounded-xl border border-green-200">
                   <h3 className="font-semibold mb-3 text-green-700">
@@ -126,7 +126,7 @@ const MyBookings = () => {
 
                   <div className="text-sm space-y-1">
                     <p>
-                      <span className="font-medium">Name:</span>{" "}
+                      <span className="font-medium">Owner:</span>{" "}
                       {booking.pg?.owner?.name}
                     </p>
                     <p>
@@ -135,20 +135,20 @@ const MyBookings = () => {
                     </p>
                     <p>
                       <span className="font-medium">Phone:</span>{" "}
-                      {booking.pg?.owner?.phone}
+                      {booking.pg?.phone}
                     </p>
                   </div>
 
                   <div className="mt-4 flex gap-3 flex-wrap">
                     <a
-                      href={`tel:${booking.pg?.owner?.phone}`}
+                      href={`tel:${booking.pg?.phone}`}
                       className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm"
                     >
                       Call Owner
                     </a>
 
                     <a
-                      href={`https://wa.me/${booking.pg?.owner?.phone}`}
+                      href={`https://wa.me/${booking.pg?.phone}`}
                       target="_blank"
                       rel="noreferrer"
                       className="px-4 py-2 bg-emerald-500 text-white rounded-lg text-sm"

@@ -7,21 +7,41 @@ import { useNavigate } from "react-router-dom";
 const FeaturedSection = () => {
   const navigate = useNavigate();
   const [pgs, setPgs] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchPgs = async () => {
       try {
         const { data } = await axios.get("/api/user/all-pgs");
+
         if (data.success) {
           setPgs(data.pgs.slice(0, 6));
         }
       } catch (error) {
         console.log(error);
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchPgs();
   }, []);
+
+  if (loading) {
+    return (
+      <div className="py-24 text-center">
+        <p>Loading featured PGs...</p>
+      </div>
+    );
+  }
+
+  if (pgs.length === 0) {
+    return (
+      <div className="py-24 text-center">
+        <p>No PGs available right now.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center py-24 px-6 md:px-16 lg:px-24 xl:px-32">
@@ -38,7 +58,7 @@ const FeaturedSection = () => {
 
       <button
         onClick={() => navigate("/pgs")}
-        className="mt-12 px-5 py-2 border rounded-md"
+        className="mt-12 px-6 py-2 border rounded-md hover:bg-black hover:text-white transition"
       >
         Explore More
       </button>

@@ -18,6 +18,19 @@ export const AppProvider = ({ children }) => {
   const [loadingUser, setLoadingUser] = useState(true);
 
   /* =========================
+     Logout
+  ========================= */
+  const logout = useCallback(() => {
+    setToken(null);
+    setUser(null);
+    setIsOwner(false);
+    localStorage.removeItem("token");
+    delete axios.defaults.headers.common["Authorization"];
+    navigate("/", { replace: true });
+    toast.success("Logged out successfully");
+  }, [navigate]);
+
+  /* =========================
      Fetch Logged In User
   ========================= */
   const fetchUser = useCallback(async () => {
@@ -34,7 +47,7 @@ export const AppProvider = ({ children }) => {
     } finally {
       setLoadingUser(false);
     }
-  }, []);
+  }, [logout]);
 
   /* =========================
      Attach Token
@@ -74,25 +87,13 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  /* =========================
-     Logout
-  ========================= */
-  const logout = useCallback(() => {
-    setToken(null);
-    setUser(null);
-    setIsOwner(false);
-    localStorage.removeItem("token");
-    delete axios.defaults.headers.common["Authorization"];
-    navigate("/", { replace: true });
-    toast.success("Logged out successfully");
-  }, [navigate]);
-
   return (
     <AppContext.Provider
       value={{
         token,
         setToken,
         user,
+        setUser,      // ✅ important
         isOwner,
         showLogin,
         setShowLogin,

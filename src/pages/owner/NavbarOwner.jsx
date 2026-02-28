@@ -31,17 +31,7 @@ const NavbarOwner = () => {
         <div className="hidden sm:flex items-center gap-6">
 
           {/* STUDENT LINKS */}
-          {!isOwner && (
-            <>
-              <Link to="/pgs" className="cursor-pointer">
-                PGs
-              </Link>
-
-              <Link to="/my-bookings" className="cursor-pointer">
-                My Bookings
-              </Link>
-            </>
-          )}
+          
 
           {/* OWNER DASHBOARD */}
           {isOwner && (
@@ -106,29 +96,7 @@ const NavbarOwner = () => {
         flex flex-col gap-6 p-6 border-t bg-white z-50">
 
           {/* STUDENT LINKS */}
-          {!isOwner && (
-            <>
-              <button
-                onClick={() => {
-                  navigate("/pgs");
-                  setOpen(false);
-                }}
-                className="text-lg text-left"
-              >
-                PGs
-              </button>
-
-              <button
-                onClick={() => {
-                  navigate("/my-bookings");
-                  setOpen(false);
-                }}
-                className="text-lg text-left"
-              >
-                My Bookings
-              </button>
-            </>
-          )}
+         
 
           {/* OWNER DASHBOARD */}
           {isOwner && (

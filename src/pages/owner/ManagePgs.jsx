@@ -2,11 +2,16 @@ import React, { useEffect, useState } from "react";
 import Title from "../../components/Title";
 import axios from "axios";
 import { toast } from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
 
 const ManagePgs = () => {
   const [pgs, setPgs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
+  /* ===============================
+     Fetch Owner PGs
+  =============================== */
   useEffect(() => {
     const fetchPgs = async () => {
       try {
@@ -24,7 +29,12 @@ const ManagePgs = () => {
     fetchPgs();
   }, []);
 
-  const handleDelete = async (pgId) => {
+  /* ===============================
+     Delete PG
+  =============================== */
+  const handleDelete = async (e, pgId) => {
+    e.stopPropagation(); // 🔥 prevent card redirect
+
     const confirmDelete = window.confirm("Delete this PG?");
     if (!confirmDelete) return;
 
@@ -35,14 +45,19 @@ const ManagePgs = () => {
 
       if (data.success) {
         setPgs((prev) => prev.filter((pg) => pg._id !== pgId));
-        toast.success("PG deleted");
+        toast.success("PG deleted successfully");
       }
     } catch (error) {
       toast.error(error.response?.data?.message || error.message);
     }
   };
 
-  const toggleAvailability = async (pgId) => {
+  /* ===============================
+     Toggle Availability
+  =============================== */
+  const toggleAvailability = async (e, pgId) => {
+    e.stopPropagation(); // 🔥 prevent card redirect
+
     try {
       const { data } = await axios.patch(
         `/api/owner/toggle-pg/${pgId}`
@@ -56,7 +71,12 @@ const ManagePgs = () => {
               : pg
           )
         );
-        toast.success("Availability updated");
+
+        toast.success(
+          data.isAvailable
+            ? "PG Activated"
+            : "PG Deactivated"
+        );
       }
     } catch (error) {
       toast.error(error.response?.data?.message || error.message);
@@ -71,7 +91,7 @@ const ManagePgs = () => {
     <div className="p-10 bg-gray-50 min-h-screen">
       <Title
         title="Manage Your PGs"
-        subTitle="Control availability, rooms and listings"
+        subTitle="Click on a PG to edit details"
         align="left"
       />
 
@@ -94,7 +114,10 @@ const ManagePgs = () => {
             return (
               <div
                 key={pg._id}
-                className="bg-white rounded-2xl shadow-sm hover:shadow-lg transition p-6 flex flex-col justify-between"
+                onClick={() =>
+                  navigate(`/owner/add-pg/${pg._id}`)
+                }
+                className="bg-white rounded-2xl shadow-sm hover:shadow-lg transition p-6 flex flex-col justify-between cursor-pointer"
               >
                 {/* Top Section */}
                 <div>
@@ -142,14 +165,18 @@ const ManagePgs = () => {
                 {/* Buttons */}
                 <div className="mt-6 flex gap-3">
                   <button
-                    onClick={() => toggleAvailability(pg._id)}
+                    onClick={(e) =>
+                      toggleAvailability(e, pg._id)
+                    }
                     className="flex-1 py-2 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition"
                   >
                     Toggle Status
                   </button>
 
                   <button
-                    onClick={() => handleDelete(pg._id)}
+                    onClick={(e) =>
+                      handleDelete(e, pg._id)
+                    }
                     className="flex-1 py-2 text-sm bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition"
                   >
                     Delete

@@ -1,13 +1,16 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Title from "../../components/Title";
 import axios from "axios";
 import { toast } from "react-hot-toast";
+import { useParams, useNavigate } from "react-router-dom";
 
 const sharingMap = { single: 1, double: 2, triple: 3 };
 const roomTypes = ["single", "double", "triple"];
 
 const AddPg = () => {
-  const [dragActive, setDragActive] = useState(false);
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const isEditMode = Boolean(id);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -30,7 +33,41 @@ const AddPg = () => {
     "Parking", "CCTV", "Gym", "Study Room"
   ];
 
-  /* Basic Change */
+  /* ===============================
+     FETCH PG FOR EDIT MODE
+  =============================== */
+  useEffect(() => {
+    if (!id) return;
+
+    const fetchPg = async () => {
+      try {
+        const { data } = await axios.get(`/api/user/pg/${id}`);
+        if (data.success) {
+          const pg = data.pg;
+
+          setFormData({
+            name: pg.name,
+            location: pg.location,
+            description: pg.description || "",
+            amenities: pg.amenities || [],
+            images: [],
+            isAvailable: pg.isAvailable,
+            phone: pg.phone || "",
+            isGirlsPg: pg.isGirlsPg || false,
+            roomConfig: pg.roomConfig
+          });
+        }
+      } catch (error) {
+        toast.error("Failed to load PG data");
+      }
+    };
+
+    fetchPg();
+  }, [id]);
+
+  /* ===============================
+     BASIC INPUT CHANGE
+  =============================== */
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
 
@@ -40,7 +77,9 @@ const AddPg = () => {
     }));
   };
 
-  /* Room Config Change */
+  /* ===============================
+     ROOM CONFIG CHANGE
+  =============================== */
   const handleRoomChange = (type, field, value) => {
     setFormData((prev) => ({
       ...prev,
@@ -54,7 +93,9 @@ const AddPg = () => {
     }));
   };
 
-  /* Amenities */
+  /* ===============================
+     AMENITIES
+  =============================== */
   const handleAmenityChange = (e) => {
     const { value, checked } = e.target;
 
@@ -66,7 +107,9 @@ const AddPg = () => {
     }));
   };
 
-  /* Handle Files */
+  /* ===============================
+     IMAGE HANDLING
+  =============================== */
   const handleFiles = (files) => {
     const newFiles = Array.from(files);
 
@@ -76,17 +119,12 @@ const AddPg = () => {
     }));
   };
 
-  const removeImage = (index) => {
-    setFormData((prev) => ({
-      ...prev,
-      images: prev.images.filter((_, i) => i !== index)
-    }));
-  };
-
   const calculateBeds = (type) =>
     formData.roomConfig[type].rooms * sharingMap[type];
 
-  /* Submit */
+  /* ===============================
+     SUBMIT
+  =============================== */
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -95,8 +133,6 @@ const AddPg = () => {
     }
 
     try {
-      const form = new FormData();
-
       const pgData = {
         name: formData.name,
         location: formData.location,
@@ -108,38 +144,36 @@ const AddPg = () => {
         isGirlsPg: formData.isGirlsPg
       };
 
-      form.append("pgData", JSON.stringify(pgData));
+      if (isEditMode) {
+        // UPDATE MODE
+        const { data } = await axios.put(
+          `/api/owner/update-pg/${id}`,
+          pgData
+        );
 
-      formData.images.forEach((image) => {
-        form.append("images", image);
-      });
+        if (data.success) {
+          toast.success("PG Updated Successfully");
+          navigate("/owner/manage-pg");
+        }
+      } else {
+        // ADD MODE
+        const form = new FormData();
+        form.append("pgData", JSON.stringify(pgData));
 
-      const { data } = await axios.post("/api/owner/add-pg", form);
-
-      if (data.success) {
-        toast.success("PG Added Successfully");
-
-        // Reset form
-        setFormData({
-          name: "",
-          location: "",
-          description: "",
-          amenities: [],
-          images: [],
-          isAvailable: true,
-          phone: "",
-          isGirlsPg: false,
-          roomConfig: {
-            single: { rooms: 0, price: 0 },
-            double: { rooms: 0, price: 0 },
-            triple: { rooms: 0, price: 0 }
-          }
+        formData.images.forEach((image) => {
+          form.append("images", image);
         });
 
-      } else {
-        toast.error(data.message);
-      }
+        const { data } = await axios.post(
+          "/api/owner/add-pg",
+          form
+        );
 
+        if (data.success) {
+          toast.success("PG Added Successfully");
+          navigate("/owner/manage-pg");
+        }
+      }
     } catch (error) {
       toast.error(error.response?.data?.message || error.message);
     }
@@ -148,7 +182,7 @@ const AddPg = () => {
   return (
     <div className="p-10 w-full bg-gray-50 min-h-screen">
       <Title
-        title="Add New PG"
+        title={isEditMode ? "Edit PG" : "Add New PG"}
         subTitle="Configure rooms and bed availability"
         align="left"
       />
@@ -157,7 +191,6 @@ const AddPg = () => {
         onSubmit={handleSubmit}
         className="mt-10 bg-white rounded-2xl shadow-sm p-10 space-y-10"
       >
-        {/* Basic Info */}
         <SectionTitle title="Basic Information" />
 
         <div className="grid md:grid-cols-2 gap-6">
@@ -165,31 +198,23 @@ const AddPg = () => {
           <Input label="Location" name="location" value={formData.location} onChange={handleChange} />
         </div>
 
-        {/* Phone */}
-        <div className="mt-6">
-          <Input
-            label="Contact Phone Number"
-            name="phone"
-            value={formData.phone}
+        <Input
+          label="Contact Phone Number"
+          name="phone"
+          value={formData.phone}
+          onChange={handleChange}
+        />
+
+        <label className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            name="isGirlsPg"
+            checked={formData.isGirlsPg}
             onChange={handleChange}
-            placeholder="Enter 10 digit mobile number"
           />
-        </div>
+          This is a Girls PG
+        </label>
 
-        {/* Girls PG Checkbox */}
-        <div className="mt-4">
-          <label className="flex items-center gap-3">
-            <input
-              type="checkbox"
-              name="isGirlsPg"
-              checked={formData.isGirlsPg}
-              onChange={handleChange}
-            />
-            This is a Girls PG
-          </label>
-        </div>
-
-        {/* Room Config */}
         <SectionTitle title="Room Configuration" />
 
         <div className="grid md:grid-cols-3 gap-6">
@@ -200,7 +225,6 @@ const AddPg = () => {
               <Input
                 label="No. of Rooms"
                 type="number"
-                min="0"
                 value={formData.roomConfig[type].rooms}
                 onChange={(e) =>
                   handleRoomChange(type, "rooms", e.target.value)
@@ -210,7 +234,6 @@ const AddPg = () => {
               <Input
                 label="Price per Bed (₹)"
                 type="number"
-                min="0"
                 value={formData.roomConfig[type].price}
                 onChange={(e) =>
                   handleRoomChange(type, "price", e.target.value)
@@ -226,7 +249,6 @@ const AddPg = () => {
           ))}
         </div>
 
-        {/* Amenities */}
         <SectionTitle title="Amenities" />
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -243,17 +265,6 @@ const AddPg = () => {
           ))}
         </div>
 
-        {/* Image Upload */}
-        <SectionTitle title="Upload Images" />
-
-        <input
-          type="file"
-          multiple
-          accept="image/*"
-          onChange={(e) => handleFiles(e.target.files)}
-        />
-
-        {/* Description */}
         <SectionTitle title="Description" />
 
         <textarea
@@ -264,7 +275,6 @@ const AddPg = () => {
           className="w-full border rounded-lg px-4 py-2"
         />
 
-        {/* Availability */}
         <label className="flex items-center gap-3">
           <input
             type="checkbox"
@@ -279,14 +289,12 @@ const AddPg = () => {
           type="submit"
           className="bg-primary text-white px-8 py-3 rounded-lg"
         >
-          Add PG
+          {isEditMode ? "Update PG" : "Add PG"}
         </button>
       </form>
     </div>
   );
 };
-
-/* Reusable Components */
 
 const SectionTitle = ({ title }) => (
   <h3 className="text-lg font-semibold border-b pb-2">

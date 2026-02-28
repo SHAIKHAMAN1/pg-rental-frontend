@@ -1,14 +1,28 @@
 import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAppContext } from "../../context/useAppContext";
-import { assets, menuLinks } from "../assets/assets";
+import { menuLinks } from "../assets/assets";
 
 const Navbar = () => {
-  const { user, isOwner, logout, setShowLogin, becomeOwner } = useAppContext();
+  const {
+    user,
+    isOwner,
+    logout,
+    setShowLogin,
+    becomeOwner,
+  } = useAppContext();
 
   const location = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+
+  // 🔥 Filter menu links based on role
+  const filteredLinks = menuLinks.filter((link) => {
+    if (isOwner) {
+      return !["/", "/pgs", "/my-bookings"].includes(link.path);
+    }
+    return true;
+  });
 
   return (
     <nav
@@ -22,10 +36,9 @@ const Navbar = () => {
       </Link>
 
       <div className="flex items-center gap-6">
-
         {/* Desktop Menu */}
         <div className="hidden sm:flex items-center gap-8">
-          {menuLinks.map((link, index) => (
+          {filteredLinks.map((link, index) => (
             <Link
               key={index}
               to={link.path}
@@ -38,11 +51,10 @@ const Navbar = () => {
           ))}
         </div>
 
-        {/* Desktop Auth Buttons */}
+        {/* Desktop Auth Section */}
         <div className="hidden sm:flex gap-4 items-center">
           {user ? (
             <>
-              {/* If NOT owner */}
               {!isOwner && (
                 <button
                   onClick={becomeOwner}
@@ -52,7 +64,6 @@ const Navbar = () => {
                 </button>
               )}
 
-              {/* If owner */}
               {isOwner && (
                 <button
                   onClick={() => navigate("/owner/dashboard")}
@@ -99,7 +110,7 @@ const Navbar = () => {
         transition-transform duration-300 z-50 bg-white
         ${open ? "translate-x-0" : "translate-x-full"}`}
       >
-        {menuLinks.map((link, index) => (
+        {filteredLinks.map((link, index) => (
           <Link
             key={index}
             to={link.path}
@@ -141,7 +152,7 @@ const Navbar = () => {
                 logout();
                 setOpen(false);
               }}
-              className="px-5 py-2 bg-gray-200 rounded-lg"
+              className="px-5 py-2 bg-gray-200 rounded-lg text-left"
             >
               Logout
             </button>
@@ -152,7 +163,7 @@ const Navbar = () => {
               setShowLogin(true);
               setOpen(false);
             }}
-            className="px-5 py-2 bg-primary text-white rounded-lg"
+            className="px-5 py-2 bg-primary text-white rounded-lg text-left"
           >
             Login
           </button>

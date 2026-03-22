@@ -14,9 +14,7 @@ const PgDetails = () => {
   const [bookingLoading, setBookingLoading] = useState(false);
   const [currentImage, setCurrentImage] = useState(0);
 
-  /* ===============================
-     Fetch Single PG
-  =============================== */
+  /* ================= FETCH ================= */
   useEffect(() => {
     const fetchPg = async () => {
       try {
@@ -26,7 +24,7 @@ const PgDetails = () => {
         } else {
           toast.error(data.message);
         }
-      } catch (error) {
+      } catch {
         toast.error("Failed to fetch PG");
       } finally {
         setLoading(false);
@@ -36,9 +34,7 @@ const PgDetails = () => {
     fetchPg();
   }, [id]);
 
-  /* ===============================
-     Auto Image Slide
-  =============================== */
+  /* ================= IMAGE SLIDER ================= */
   useEffect(() => {
     if (!pg?.images || pg.images.length <= 1) return;
 
@@ -51,38 +47,67 @@ const PgDetails = () => {
     return () => clearInterval(interval);
   }, [pg]);
 
-  /* ===============================
-     Handle Booking
-  =============================== */
+  /* ================= AVAILABILITY ================= */
+  const isAvailable = () => {
+    if (!pg) return false;
+
+    if (pg.type === "room") {
+      return pg.occupants.current < pg.occupants.max;
+    }
+
+    return (
+      pg.bedsSummary?.single?.available > 0 ||
+      pg.bedsSummary?.double?.available > 0 ||
+      pg.bedsSummary?.triple?.available > 0
+    );
+  };
+
+  /* ================= BOOKING ================= */
   const handleBooking = async () => {
     if (!pg) return;
 
-    const availableBeds =
-      pg.bedsSummary?.[roomType]?.available || 0;
+    let available;
 
-    if (availableBeds <= 0) {
-      toast.error("No beds available for selected room type");
+    if (pg.type === "room") {
+      available =
+        pg.occupants.current < pg.occupants.max ? 1 : 0;
+    } else {
+      available =
+        pg.bedsSummary?.[roomType]?.available || 0;
+    }
+
+    if (available <= 0) {
+      toast.error("No availability");
       return;
     }
 
     try {
       setBookingLoading(true);
 
-      const { data } = await axios.post("/api/booking/create", {
+      const payload = {
         pgId: id,
-        roomType,
         months,
         startDate: new Date()
-      });
+      };
+
+      if (pg.type === "pg") {
+        payload.roomType = roomType;
+      }
+
+      const { data } = await axios.post(
+        "/api/booking/create",
+        payload
+      );
 
       if (data.success) {
-        toast.success("Booking Created Successfully");
+        toast.success("Booking Successful");
         navigate("/my-bookings");
       } else {
         toast.error(data.message);
       }
-    } catch (error) {
-      toast.error(error.response?.data?.message || error.message);
+
+    } catch (err) {
+      toast.error(err.message);
     } finally {
       setBookingLoading(false);
     }
@@ -92,71 +117,43 @@ const PgDetails = () => {
     return <p className="text-center py-20">Loading...</p>;
 
   if (!pg)
-    return <p className="text-center py-20">PG not found</p>;
+    return <p className="text-center py-20">Not found</p>;
 
-  const price = pg.roomConfig?.[roomType]?.price || 0;
+  const price =
+    pg.type === "pg"
+      ? pg.roomConfig?.[roomType]?.price || 0
+      : pg.roomConfig?.single?.price || 0;
+
   const totalPrice = price * months;
 
   return (
-    <section className="px-6 md:px-16 lg:px-24 xl:px-32 py-16">
+    <section className="px-6 md:px-16 py-16 bg-gray-50 min-h-screen">
+
+      {/* BACK */}
       <button
         onClick={() => navigate(-1)}
-        className="mb-6 text-sm text-primary"
+        className="mb-6 text-sm text-gray-500 hover:text-black"
       >
         ← Back
       </button>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+      <div className="grid lg:grid-cols-2 gap-12 bg-white p-8 rounded-2xl shadow-md">
 
-        {/* ================= IMAGE SLIDER ================= */}
+        {/* IMAGE */}
         <div className="relative">
           <img
-            src={
-              pg.images && pg.images.length > 0
-                ? pg.images[currentImage]
-                : "/placeholder.jpg"
-            }
-            alt={pg.name}
-            className="w-full h-[400px] object-cover rounded-2xl transition-all duration-300"
+            src={pg.images?.[currentImage] || "/placeholder.jpg"}
+            className="w-full h-[400px] object-cover rounded-xl"
           />
 
-          {/* Left Arrow */}
           {pg.images?.length > 1 && (
-            <button
-              onClick={() =>
-                setCurrentImage((prev) =>
-                  prev === 0 ? pg.images.length - 1 : prev - 1
-                )
-              }
-              className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/50 text-white px-3 py-2 rounded-full"
-            >
-              ◀
-            </button>
-          )}
-
-          {/* Right Arrow */}
-          {pg.images?.length > 1 && (
-            <button
-              onClick={() =>
-                setCurrentImage((prev) =>
-                  prev === pg.images.length - 1 ? 0 : prev + 1
-                )
-              }
-              className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/50 text-white px-3 py-2 rounded-full"
-            >
-              ▶
-            </button>
-          )}
-
-          {/* Dots */}
-          {pg.images?.length > 1 && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-              {pg.images.map((_, index) => (
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2">
+              {pg.images.map((_, i) => (
                 <div
-                  key={index}
-                  onClick={() => setCurrentImage(index)}
-                  className={`w-3 h-3 rounded-full cursor-pointer ${
-                    currentImage === index
+                  key={i}
+                  onClick={() => setCurrentImage(i)}
+                  className={`w-2.5 h-2.5 rounded-full cursor-pointer ${
+                    currentImage === i
                       ? "bg-white"
                       : "bg-white/50"
                   }`}
@@ -166,73 +163,145 @@ const PgDetails = () => {
           )}
         </div>
 
-        {/* ================= DETAILS ================= */}
-        <div>
-          <h1 className="text-3xl font-semibold">{pg.name}</h1>
-          <p className="text-gray-500 mt-2">📍 {pg.location}</p>
+        {/* DETAILS */}
+        <div className="flex flex-col justify-between">
 
-          {/* Room Type */}
-          <div className="mt-6">
-            <h3 className="mb-3 font-medium">Select Room Type</h3>
+          <div>
+            <h1 className="text-3xl font-bold mb-2">{pg.name}</h1>
 
-            {["single", "double", "triple"].map((type) => {
-              const available =
-                pg.bedsSummary?.[type]?.available || 0;
+            <p className="text-gray-500 mb-3">📍 {pg.location}</p>
 
-              return (
-                <button
-                  key={type}
-                  disabled={available <= 0}
-                  onClick={() => setRoomType(type)}
-                  className={`px-4 py-2 border mr-3 rounded-lg capitalize ${
-                    roomType === type
-                      ? "bg-primary text-white"
-                      : ""
-                  } ${
-                    available <= 0
-                      ? "opacity-50 cursor-not-allowed"
-                      : ""
+            <span className="inline-block bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-xs font-medium mb-6">
+              {pg.type === "room" ? "Room / Flat" : "PG"}
+            </span>
+
+            {/* ROOM TYPE (NO COUNT — ONLY STATUS) */}
+            {pg.type === "pg" && (
+              <div className="mb-6">
+                <h3 className="mb-3 font-medium text-gray-700">
+                  Select Room Type
+                </h3>
+
+                <div className="flex gap-3 flex-wrap">
+                  {["single", "double", "triple"].map((type) => {
+                    const available =
+                      pg.bedsSummary?.[type]?.available || 0;
+
+                    return (
+                      <button
+                        key={type}
+                        disabled={available <= 0}
+                        onClick={() => setRoomType(type)}
+                        className={`px-4 py-2 rounded-lg border text-sm capitalize transition ${
+                          roomType === type
+                            ? "bg-primary text-white border-primary"
+                            : "bg-gray-100 hover:bg-gray-200"
+                        } ${
+                          available <= 0
+                            ? "opacity-40 cursor-not-allowed"
+                            : ""
+                        }`}
+                      >
+                        {type}
+
+                        {/* 🔥 STATUS TEXT */}
+                        {available > 2 ? (
+                          <span className="text-green-600 text-xs ml-2">
+                            Available
+                          </span>
+                        ) : available > 0 ? (
+                          <span className="text-orange-500 text-xs ml-2">
+                            Few left
+                          </span>
+                        ) : (
+                          <span className="text-red-500 text-xs ml-2">
+                            Full
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* ROOM AVAILABILITY */}
+            {pg.type === "room" && (
+              <div className="mb-6">
+                <p
+                  className={`font-medium ${
+                    pg.occupants.current < pg.occupants.max
+                      ? "text-green-600"
+                      : "text-red-500"
                   }`}
                 >
-                  {type} ({available} beds)
-                </button>
-              );
-            })}
+                  {pg.occupants.current < pg.occupants.max
+                    ? "Room Available"
+                    : "Room Full"}
+                </p>
+              </div>
+            )}
+
+            {/* MONTHS */}
+            <div className="mb-6">
+              <label className="block mb-2 text-sm text-gray-600">
+                Select Duration
+              </label>
+
+              <select
+                value={months}
+                onChange={(e) => setMonths(Number(e.target.value))}
+                className="border px-4 py-2 rounded-lg w-full max-w-[200px]"
+              >
+                {[1, 2, 3, 6].map((m) => (
+                  <option key={m} value={m}>
+                    {m} Months
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
-          {/* Months */}
-          <div className="mt-6">
-            <select
-              value={months}
-              onChange={(e) => setMonths(Number(e.target.value))}
-              className="border px-4 py-2 rounded-lg"
-            >
-              {[1, 2, 3, 6, 12].map((m) => (
-                <option key={m} value={m}>
-                  {m} Months
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* PRICE + BUTTON */}
+          <div className="border-t pt-6 mt-6">
 
-          {/* Pricing */}
-          <div className="mt-6 space-y-2">
-            <h2 className="text-xl font-semibold">
-              ₹{price} / month
+            <h2 className="text-2xl font-semibold">
+              ₹{price} <span className="text-sm text-gray-500">/ month</span>
             </h2>
-            <h3 className="text-lg">
+
+            <p className="text-gray-600 mb-4">
               Total: ₹{totalPrice}
-            </h3>
+            </p>
+
+            <button
+              disabled={!isAvailable() || bookingLoading}
+              onClick={handleBooking}
+              className="w-full bg-primary hover:bg-primary/90 text-white py-3 rounded-lg font-medium transition"
+            >
+              {bookingLoading ? "Booking..." : "Book Now"}
+            </button>
+
+            <div className="w-full my-5 bg-amber-50 border border-amber-200 rounded-xl p-4 shadow-sm">
+        <div className="flex items-center gap-3">
+
+          {/* ICON */}
+          <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-amber-200 text-amber-800">
+            ⚠️
           </div>
 
-          {/* Book Button */}
-          <button
-            disabled={bookingLoading}
-            onClick={handleBooking}
-            className="mt-6 px-6 py-3 bg-primary text-white rounded-lg"
-          >
-            {bookingLoading ? "Booking..." : "Book Now"}
-          </button>
+          {/* TEXT */}
+          <div className="flex-1">
+            <p className="text-sm text-amber-800 leading-relaxed">
+              <span className="font-semibold">Safety Notice:</span>{" "}
+              Do not make any online payment before visiting the property.
+            </p>
+          </div>
+
+        </div>
+      </div>
+
+
+          </div>
         </div>
       </div>
     </section>

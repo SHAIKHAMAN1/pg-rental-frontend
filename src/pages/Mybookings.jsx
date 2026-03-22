@@ -40,7 +40,24 @@ const MyBookings = () => {
 
   return (
     <section className="px-6 md:px-16 lg:px-24 xl:px-32 py-16">
-      <h1 className="text-3xl font-semibold mb-10">
+
+      {/* ALERT */}
+      <div className="w-full mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-amber-200 text-amber-800">
+            ⚠️
+          </div>
+
+          <div className="flex-1">
+            <p className="text-sm text-amber-800 leading-relaxed">
+              <span className="font-semibold">Safety Notice:</span>{" "}
+              Do not make any online payment before visiting the property.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <h1 className="text-3xl py-5 font-semibold mb-10">
         My Bookings
       </h1>
 
@@ -80,14 +97,20 @@ const MyBookings = () => {
                     </span>
                   </div>
 
+                  {/* DETAILS */}
                   <div className="mt-6 grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
+
+                    {/* ROOM TYPE */}
                     <div>
-                      <p>Room</p>
-                      <p className="font-medium">
-                        {booking.roomType}
+                      <p>Type</p>
+                      <p className="font-medium capitalize">
+                        {booking.pg?.type === "room"
+                          ? "Flat"
+                          : booking.roomType}
                       </p>
                     </div>
 
+                    {/* START DATE */}
                     <div>
                       <p>Start</p>
                       <p>
@@ -97,16 +120,23 @@ const MyBookings = () => {
                       </p>
                     </div>
 
+                    {/* MONTHS */}
                     <div>
                       <p>Months</p>
                       <p>{booking.months}</p>
                     </div>
 
+                    {/* RENT */}
                     <div>
-                      <p>Rent</p>
+                      <p>
+                        {booking.pg?.type === "room"
+                          ? "Flat Rent"
+                          : "Rent / Bed"}
+                      </p>
                       <p>₹{booking.rentPerMonth}</p>
                     </div>
 
+                    {/* TOTAL */}
                     <div>
                       <p>Total</p>
                       <p className="font-semibold">
@@ -117,7 +147,7 @@ const MyBookings = () => {
                 </div>
               </div>
 
-              {/* OWNER CONTACT SECTION */}
+              {/* OWNER CONTACT */}
               {booking.status === "confirmed" && (
                 <div className="mt-4 p-5 bg-green-50 rounded-xl border border-green-200">
                   <h3 className="font-semibold mb-3 text-green-700">

@@ -21,10 +21,18 @@ const AddPg = () => {
     isAvailable: true,
     phone: "",
     isGirlsPg: false,
+
+    type: "pg",
+
     roomConfig: {
       single: { rooms: 0, price: 0 },
       double: { rooms: 0, price: 0 },
       triple: { rooms: 0, price: 0 }
+    },
+
+    occupants: {
+      current: 0,
+      max: 1
     }
   });
 
@@ -33,9 +41,7 @@ const AddPg = () => {
     "Parking", "CCTV", "Gym", "Study Room"
   ];
 
-  /* ===============================
-     FETCH PG FOR EDIT MODE
-  =============================== */
+  /* ================= FETCH ================= */
   useEffect(() => {
     if (!id) return;
 
@@ -54,10 +60,12 @@ const AddPg = () => {
             isAvailable: pg.isAvailable,
             phone: pg.phone || "",
             isGirlsPg: pg.isGirlsPg || false,
-            roomConfig: pg.roomConfig
+            type: pg.type || "pg",
+            roomConfig: pg.roomConfig,
+            occupants: pg.occupants || { current: 0, max: 1 }
           });
         }
-      } catch (error) {
+      } catch {
         toast.error("Failed to load PG data");
       }
     };
@@ -65,9 +73,7 @@ const AddPg = () => {
     fetchPg();
   }, [id]);
 
-  /* ===============================
-     BASIC INPUT CHANGE
-  =============================== */
+  /* ================= HANDLERS ================= */
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
 
@@ -77,9 +83,6 @@ const AddPg = () => {
     }));
   };
 
-  /* ===============================
-     ROOM CONFIG CHANGE
-  =============================== */
   const handleRoomChange = (type, field, value) => {
     setFormData((prev) => ({
       ...prev,
@@ -93,9 +96,6 @@ const AddPg = () => {
     }));
   };
 
-  /* ===============================
-     AMENITIES
-  =============================== */
   const handleAmenityChange = (e) => {
     const { value, checked } = e.target;
 
@@ -107,9 +107,6 @@ const AddPg = () => {
     }));
   };
 
-  /* ===============================
-     IMAGE HANDLING
-  =============================== */
   const handleFiles = (files) => {
     const newFiles = Array.from(files);
 
@@ -122,9 +119,7 @@ const AddPg = () => {
   const calculateBeds = (type) =>
     formData.roomConfig[type].rooms * sharingMap[type];
 
-  /* ===============================
-     SUBMIT
-  =============================== */
+  /* ================= SUBMIT ================= */
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -141,11 +136,12 @@ const AddPg = () => {
         roomConfig: formData.roomConfig,
         isAvailable: formData.isAvailable,
         phone: formData.phone,
-        isGirlsPg: formData.isGirlsPg
+        isGirlsPg: formData.isGirlsPg,
+        type: formData.type,
+        occupants: formData.occupants
       };
 
       if (isEditMode) {
-        // UPDATE MODE
         const { data } = await axios.put(
           `/api/owner/update-pg/${id}`,
           pgData
@@ -156,7 +152,6 @@ const AddPg = () => {
           navigate("/owner/manage-pg");
         }
       } else {
-        // ADD MODE
         const form = new FormData();
         form.append("pgData", JSON.stringify(pgData));
 
@@ -183,7 +178,7 @@ const AddPg = () => {
     <div className="p-10 w-full bg-gray-50 min-h-screen">
       <Title
         title={isEditMode ? "Edit PG" : "Add New PG"}
-        subTitle="Configure rooms and bed availability"
+        subTitle="Configure rooms and pricing"
         align="left"
       />
 
@@ -198,12 +193,44 @@ const AddPg = () => {
           <Input label="Location" name="location" value={formData.location} onChange={handleChange} />
         </div>
 
+        {/* TYPE */}
+        <select
+          name="type"
+          value={formData.type}
+          onChange={handleChange}
+          className="border px-4 py-2 rounded-lg"
+        >
+          <option value="pg">PG</option>
+          <option value="room">Room / Flat</option>
+        </select>
+
         <Input
           label="Contact Phone Number"
           name="phone"
           value={formData.phone}
           onChange={handleChange}
         />
+
+        {/* IMAGE */}
+        <SectionTitle title="Upload Images" />
+
+        <input
+          type="file"
+          multiple
+          onChange={(e) => handleFiles(e.target.files)}
+          className="border p-2 rounded-lg"
+        />
+
+        <div className="flex gap-3 mt-4 flex-wrap">
+          {formData.images.map((img, i) => (
+            <img
+              key={i}
+              src={URL.createObjectURL(img)}
+              alt=""
+              className="w-24 h-24 object-cover rounded-lg"
+            />
+          ))}
+        </div>
 
         <label className="flex items-center gap-3">
           <input
@@ -215,39 +242,85 @@ const AddPg = () => {
           This is a Girls PG
         </label>
 
-        <SectionTitle title="Room Configuration" />
+        {/* ================= PG ================= */}
+        {formData.type === "pg" && (
+          <>
+            <SectionTitle title="Room Configuration" />
 
-        <div className="grid md:grid-cols-3 gap-6">
-          {roomTypes.map((type) => (
-            <div key={type} className="border rounded-xl p-6 space-y-4">
-              <h4 className="font-semibold capitalize">{type} Sharing</h4>
+            <div className="grid md:grid-cols-3 gap-6">
+              {roomTypes.map((type) => (
+                <div key={type} className="border rounded-xl p-6 space-y-4">
+                  <h4 className="font-semibold capitalize">{type} Sharing</h4>
 
-              <Input
-                label="No. of Rooms"
-                type="number"
-                value={formData.roomConfig[type].rooms}
-                onChange={(e) =>
-                  handleRoomChange(type, "rooms", e.target.value)
-                }
-              />
+                  <Input
+                    label="No. of Rooms"
+                    type="number"
+                    value={formData.roomConfig[type].rooms}
+                    onChange={(e) =>
+                      handleRoomChange(type, "rooms", e.target.value)
+                    }
+                  />
 
-              <Input
-                label="Price per Bed (₹)"
-                type="number"
-                value={formData.roomConfig[type].price}
-                onChange={(e) =>
-                  handleRoomChange(type, "price", e.target.value)
-                }
-              />
+                  <Input
+                    label="Price per Bed (₹)"
+                    type="number"
+                    value={formData.roomConfig[type].price}
+                    onChange={(e) =>
+                      handleRoomChange(type, "price", e.target.value)
+                    }
+                  />
 
-              <p className="text-sm text-gray-500">
-                Total Beds: <span className="font-medium">
-                  {calculateBeds(type)}
-                </span>
-              </p>
+                  <p className="text-sm text-gray-500">
+                    Total Beds: {calculateBeds(type)}
+                  </p>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </>
+        )}
+
+        {/* ================= ROOM / FLAT ================= */}
+        {formData.type === "room" && (
+          <>
+            <SectionTitle title="Roommate Details" />
+
+            <Input
+              label="Max Occupants"
+              type="number"
+              value={formData.occupants.max}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  occupants: {
+                    ...formData.occupants,
+                    max: Number(e.target.value)
+                  }
+                })
+              }
+            />
+
+            {/* 🔥 FLAT RENT */}
+            <SectionTitle title="Flat Rent" />
+
+            <Input
+              label="Total Monthly Rent (₹)"
+              type="number"
+              value={formData.roomConfig.single.price}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  roomConfig: {
+                    ...formData.roomConfig,
+                    single: {
+                      ...formData.roomConfig.single,
+                      price: Number(e.target.value)
+                    }
+                  }
+                })
+              }
+            />
+          </>
+        )}
 
         <SectionTitle title="Amenities" />
 

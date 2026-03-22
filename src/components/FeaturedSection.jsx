@@ -1,24 +1,28 @@
 import React, { useEffect, useState } from "react";
-import Title from "./Title";
-import Card from "./Card";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import Title from "../components/Title";
+import Card from "../components/Card";
 
-const FeaturedSection = () => {
-  const navigate = useNavigate();
+const PGs = () => {
   const [pgs, setPgs] = useState([]);
+  const [selectedCity, setSelectedCity] = useState("All");
+  const [selectedType, setSelectedType] = useState("All"); // 🔥 NEW
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
+  /* ================= FETCH ================= */
   useEffect(() => {
     const fetchPgs = async () => {
       try {
         const { data } = await axios.get("/api/user/all-pgs");
 
-        if (data.success) {
-          setPgs(data.pgs.slice(0, 6));
+        if (data?.success) {
+          setPgs(data.pgs || []);
+        } else {
+          setError(data?.message || "Failed to fetch listings");
         }
-      } catch (error) {
-        console.log(error);
+      } catch {
+        setError("Server error while fetching listings");
       } finally {
         setLoading(false);
       }
@@ -27,43 +31,100 @@ const FeaturedSection = () => {
     fetchPgs();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="py-24 text-center">
-        <p>Loading featured PGs...</p>
-      </div>
-    );
-  }
+  /* ================= FILTER ================= */
+  const filteredPGs = pgs.filter((pg) => {
+    const location = pg?.location?.toLowerCase() || "";
 
-  if (pgs.length === 0) {
+    const cityMatch =
+      selectedCity === "All" ||
+      location.includes(selectedCity.toLowerCase());
+
+    const typeMatch =
+      selectedType === "All" ||
+      pg.type === selectedType;
+
+    return pg?.isAvailable && cityMatch && typeMatch;
+  });
+
+  /* ================= LOADING ================= */
+  if (loading)
     return (
-      <div className="py-24 text-center">
-        <p>No PGs available right now.</p>
+      <div className="text-center py-20">
+        <p>Loading...</p>
       </div>
     );
-  }
+
+  /* ================= ERROR ================= */
+  if (error)
+    return (
+      <div className="text-center py-20 text-red-500">
+        {error}
+      </div>
+    );
 
   return (
-    <div className="flex flex-col items-center py-24 px-6 md:px-16 lg:px-24 xl:px-32">
+    <section className="px-6 md:px-16 lg:px-24 xl:px-32 py-16">
+
+      {/* 🔥 UPDATED TITLE */}
       <Title
-        title="Featured PGs"
-        subTitle="Explore our selection of premium rooms"
+        title="Find Your Stay"
+        subTitle="PGs, Rooms & Shared Living Spaces"
       />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mt-12">
-        {pgs.map((pg) => (
-          <Card key={pg._id} pg={pg} />
+      {/* ================= FILTERS ================= */}
+
+      {/* CITY FILTER */}
+      <div className="mt-10 flex flex-wrap gap-4">
+        {["All", "Pune", "Mumbai", "Bangalore"].map((city) => (
+          <button
+            key={city}
+            onClick={() => setSelectedCity(city)}
+            className={`px-4 py-2 rounded-full text-sm border
+              ${
+                selectedCity === city
+                  ? "bg-primary text-white"
+                  : "bg-white"
+              }`}
+          >
+            {city}
+          </button>
         ))}
       </div>
 
-      <button
-        onClick={() => navigate("/pgs")}
-        className="mt-12 px-6 py-2 border rounded-md hover:bg-black hover:text-white transition"
-      >
-        Explore More
-      </button>
-    </div>
+      {/* 🔥 TYPE FILTER */}
+      <div className="mt-4 flex gap-4">
+        {["All", "pg", "room"].map((type) => (
+          <button
+            key={type}
+            onClick={() => setSelectedType(type)}
+            className={`px-4 py-2 rounded-full text-sm border capitalize
+              ${
+                selectedType === type
+                  ? "bg-blue-500 text-white"
+                  : "bg-white"
+              }`}
+          >
+            {type === "All" ? "All" : type}
+          </button>
+        ))}
+      </div>
+
+      {/* ================= GRID ================= */}
+      <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+
+        {filteredPGs.length > 0 ? (
+          filteredPGs.map((pg) => (
+            <Card key={pg._id} pg={pg} />
+          ))
+        ) : (
+          <p className="col-span-full text-center text-gray-500">
+            No listings available.
+          </p>
+        )}
+
+      </div>
+    </section>
   );
 };
 
-export default FeaturedSection;
+export default PGs;

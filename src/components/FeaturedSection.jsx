@@ -6,7 +6,7 @@ import Card from "../components/Card";
 const PGs = () => {
   const [pgs, setPgs] = useState([]);
   const [selectedCity, setSelectedCity] = useState("All");
-  const [selectedType, setSelectedType] = useState("All"); // 🔥 NEW
+  const [selectedType, setSelectedType] = useState("All");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -14,14 +14,29 @@ const PGs = () => {
   useEffect(() => {
     const fetchPgs = async () => {
       try {
-        const { data } = await axios.get("/api/user/all-pgs");
+        const token = localStorage.getItem("token");
+
+        // 🔥 If no token → stop early
+        if (!token) {
+          setError("Please login to view listings");
+          setLoading(false);
+          return;
+        }
+
+        const { data } = await axios.get("/api/user/all-pgs", {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
 
         if (data?.success) {
           setPgs(data.pgs || []);
         } else {
           setError(data?.message || "Failed to fetch listings");
         }
-      } catch {
+
+      } catch (error) {
+        console.log(error);
         setError("Server error while fetching listings");
       } finally {
         setLoading(false);
@@ -47,62 +62,59 @@ const PGs = () => {
   });
 
   /* ================= LOADING ================= */
-  if (loading)
+  if (loading) {
     return (
       <div className="text-center py-20">
-        <p>Loading...</p>
+        <p className="text-gray-500">Loading listings...</p>
       </div>
     );
+  }
 
   /* ================= ERROR ================= */
-  if (error)
+  if (error) {
     return (
       <div className="text-center py-20 text-red-500">
         {error}
       </div>
     );
+  }
 
   return (
     <section className="px-6 md:px-16 lg:px-24 xl:px-32 py-16">
 
-      {/* 🔥 UPDATED TITLE */}
       <Title
         title="Find Your Stay"
         subTitle="PGs, Rooms & Shared Living Spaces"
       />
 
-      {/* ================= FILTERS ================= */}
-
-      {/* CITY FILTER */}
+      {/* ================= CITY FILTER ================= */}
       <div className="mt-10 flex flex-wrap gap-4">
         {["All", "Pune", "Mumbai", "Bangalore"].map((city) => (
           <button
             key={city}
             onClick={() => setSelectedCity(city)}
-            className={`px-4 py-2 rounded-full text-sm border
-              ${
-                selectedCity === city
-                  ? "bg-primary text-white"
-                  : "bg-white"
-              }`}
+            className={`px-4 py-2 rounded-full text-sm border transition ${
+              selectedCity === city
+                ? "bg-primary text-white border-primary"
+                : "bg-white hover:bg-gray-100"
+            }`}
           >
             {city}
           </button>
         ))}
       </div>
 
-      {/* 🔥 TYPE FILTER */}
+      {/* ================= TYPE FILTER ================= */}
       <div className="mt-4 flex gap-4">
         {["All", "pg", "room"].map((type) => (
           <button
             key={type}
             onClick={() => setSelectedType(type)}
-            className={`px-4 py-2 rounded-full text-sm border capitalize
-              ${
-                selectedType === type
-                  ? "bg-blue-500 text-white"
-                  : "bg-white"
-              }`}
+            className={`px-4 py-2 rounded-full text-sm border capitalize transition ${
+              selectedType === type
+                ? "bg-blue-500 text-white border-blue-500"
+                : "bg-white hover:bg-gray-100"
+            }`}
           >
             {type === "All" ? "All" : type}
           </button>
